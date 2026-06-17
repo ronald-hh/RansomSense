@@ -21,7 +21,7 @@ An end-to-end machine learning project that analyzes ransomware attack data to p
 ## Project Structure
 
 ```text
-CyberShield-AI/
+RansomSense/
 │
 ├── data/
 ├── notebooks/
