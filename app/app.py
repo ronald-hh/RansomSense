@@ -104,4 +104,11 @@ if st.button("Predict Severity"):
     input_data = input_data.drop("Attack_Date", axis=1)
     processed = preprocessor.transform(input_data)
     prediction = model.predict(processed)[0]
-    st.success(f"Predicted Severity Score: {prediction:.2f}/10")
+    if prediction > 10:
+        st.error("🚨 CRITICAL ALERT: Company is at VERY HIGH RISK. Immediate action required.")
+    elif prediction > 7:
+        st.warning(f"⚠️ High Risk Detected: Severity Score {prediction:.2f}/10")
+    elif prediction > 4:
+        st.info(f"🟡 Moderate Risk: Severity Score {prediction:.2f}/10")
+    else:
+        st.success(f"🟢 Low Risk: Severity Score {prediction:.2f}/10")
