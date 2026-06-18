@@ -12,9 +12,6 @@ __pycache__/
 venv/
 .env
 
-# Models (optional)
-*.pkl
-
 # OS
 .DS_Store
 Thumbs.db
