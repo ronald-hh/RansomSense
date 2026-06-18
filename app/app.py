@@ -29,11 +29,13 @@ def load_dataset():
 model, preprocessor = load_models()
 df = load_dataset()
 
-st.title("🛡️ RansomSense")
+st.markdown("""
+# 🛡️ RansomSense
 
-st.caption(
-    "AI-Powered Cybersecurity Risk Assessment Platform"
-)
+### AI-Powered Ransomware Intelligence Platform
+
+Predict ransomware attack severity using machine learning and receive actionable cybersecurity recommendations.
+""")
 
 st.write(
     """
