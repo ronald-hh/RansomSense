@@ -33,3 +33,7 @@ RansomSense/
 ```
 
 # Note : The data is not real world data
+
+## Live Demo
+
+https://ransomsense.streamlit.app
