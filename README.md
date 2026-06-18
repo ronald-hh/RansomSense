@@ -31,3 +31,5 @@ RansomSense/
 ├── README.md
 └── requirements.txt
 ```
+
+# Note : The data is not real world data
