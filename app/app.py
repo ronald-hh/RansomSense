@@ -1,15 +1,7 @@
 import streamlit as st
 import pandas as pd
-from pathlib import Path
 import joblib
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-MODELS_DIR = BASE_DIR / "models"
-
-print(MODELS_DIR)
-
-model = joblib.load(MODELS_DIR / "severity_model.pkl")
-preprocessor = joblib.load(MODELS_DIR / "preprocessor.pkl")
+from pathlib import Path
 
 st.set_page_config(
     page_title="RansomSense",
@@ -17,98 +9,221 @@ st.set_page_config(
     layout="wide"
 )
 
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODELS_DIR = BASE_DIR / "models"
+DATA_DIR = BASE_DIR / "data" / "processed"
+
+@st.cache_resource
+def load_models():
+    model = joblib.load(MODELS_DIR / "severity_model.pkl")
+    preprocessor = joblib.load(MODELS_DIR / "preprocessor.pkl")
+    return model, preprocessor
+
+
+@st.cache_data
+def load_dataset():
+    return pd.read_csv(DATA_DIR / "cleaned_ransomware_dataset.csv")
+
+
+model, preprocessor = load_models()
+df = load_dataset()
+
 st.title("🛡️ RansomSense")
 
-st.subheader("AI-Powered Ransomware Severity Prediction")
+st.caption(
+    "AI-Powered Cybersecurity Risk Assessment Platform"
+)
 
-st.sidebar.title("Navigation")
+st.write(
+    """
+Predict the severity of ransomware attacks using Machine Learning.
+Enter the attack information below and receive an AI-generated
+severity prediction.
+"""
+)
+
+st.sidebar.header("About")
 
 st.sidebar.info(
-    "Enter ransomware attack details to predict severity."
+    """
+RansomSense predicts the severity of ransomware attacks using
+Machine Learning models trained on historical ransomware incidents.
+"""
 )
 
-industry = st.selectbox(
-    "Industry",
-    [
-        "Healthcare",
-        "Finance",
-        "Education",
-        "Government",
-        "Retail",
-        "Technology",
-        "Manufacturing"
-    ]
-)
+st.sidebar.markdown("---")
 
-country = st.selectbox(
-    "Country",
-    [
-        "USA",
-        "UK",
-        "Germany",
-        "Canada",
-        "South Africa",
-        "India",
-        "Australia"
-    ]
-)
+st.sidebar.write("Developed by Hlakulo R. Hlungwani")
 
-attack_vector = st.selectbox(
-    "Attack Vector",
-    [
-        "Phishing",
-        "RDP",
-        "Software Vulnerability",
-        "Malicious Email",
-        "USB",
-        "Insider Threat"
-    ]
-)
 
-group = st.text_input(
-    "Ransomware Group"
-)
+industries = sorted(df["Industry"].dropna().unique())
+countries = sorted(df["Country"].dropna().unique())
+vectors = sorted(df["Attack_Vector"].dropna().unique())
+groups = sorted(df["Ransomware_Group"].dropna().unique())
 
-attack_date = st.date_input(
-    "Attack Date"
-)
 
-ransom = st.number_input(
-    "Ransom Amount (USD)",
-    min_value=0.0
-)
+st.header("Attack Information")
 
-if st.button("Predict Severity"):
-    input_data = pd.DataFrame({
+col1, col2 = st.columns(2)
 
-    "Industry":[industry],
+with col1:
 
-    "Country":[country],
+    industry = st.selectbox(
+        "Industry",
+        industries
+    )
 
-    "Attack_Date":[attack_date],
+    country = st.selectbox(
+        "Country",
+        countries
+    )
 
-    "Ransomware_Group":[group],
+    attack_vector = st.selectbox(
+        "Attack Vector",
+        vectors
+    )
 
-    "Attack_Vector":[attack_vector],
+with col2:
 
-    "Ransom_Amount_USD":[ransom]
+    ransomware_group = st.selectbox(
+        "Ransomware Group",
+        groups
+    )
 
-})
-    input_data["Attack_Date"] = pd.to_datetime(input_data["Attack_Date"])
+    attack_date = st.date_input(
+        "Attack Date"
+    )
 
-    input_data["Attack_Year"] = input_data["Attack_Date"].dt.year
-    input_data["Attack_Month"] = input_data["Attack_Date"].dt.month
-    input_data["Attack_Day"] = input_data["Attack_Date"].dt.day
-    input_data["Attack_DayOfWeek"] = input_data["Attack_Date"].dt.dayofweek
+    ransom_amount = st.number_input(
+        "Ransom Amount (USD)",
+        min_value=0.0,
+        value=100000.0,
+        step=10000.0
+    )
 
-    input_data = input_data.drop("Attack_Date", axis=1)
-    processed = preprocessor.transform(input_data)
-    prediction = model.predict(processed)[0]
-    if prediction > 10:
-        st.error("🚨 CRITICAL ALERT: Company is at VERY HIGH RISK. Immediate action required.")
-    elif prediction > 7:
-        st.warning(f"⚠️ High Risk Detected: Severity Score {prediction:.2f}/10")
-    elif prediction > 4:
-        st.info(f"🟡 Moderate Risk: Severity Score {prediction:.2f}/10")
-    else:
-        st.success(f"🟢 Low Risk: Severity Score {prediction:.2f}/10")
+st.markdown("---")
+
+
+if st.button("Predict Severity", use_container_width=True):
+
+    try:
+
+        input_data = pd.DataFrame({
+
+            "Industry": [industry],
+            "Country": [country],
+            "Attack_Date": [attack_date],
+            "Ransomware_Group": [ransomware_group],
+            "Attack_Vector": [attack_vector],
+            "Ransom_Amount_USD": [ransom_amount]
+
+        })
+
+        input_data["Attack_Date"] = pd.to_datetime(input_data["Attack_Date"])
+
+        input_data["Attack_Year"] = input_data["Attack_Date"].dt.year
+        input_data["Attack_Month"] = input_data["Attack_Date"].dt.month
+        input_data["Attack_Day"] = input_data["Attack_Date"].dt.day
+        input_data["Attack_DayOfWeek"] = input_data["Attack_Date"].dt.dayofweek
+
+        input_data = input_data.drop("Attack_Date", axis=1)
+
+        processed = preprocessor.transform(input_data)
+
+        prediction = model.predict(processed)[0]
+
+        # Prevent impossible values
+        prediction = max(0, min(prediction, 10))
+
+        st.markdown("## Prediction Results")
+
+        metric_col, progress_col = st.columns([1, 2])
+
+        with metric_col:
+
+            st.metric(
+                "Severity Score",
+                f"{prediction:.2f}/10"
+            )
+
+        with progress_col:
+
+            st.progress(prediction / 10)
+
+        # Risk Level
+
+        if prediction < 2:
+
+            st.success("🟢 Very Low Risk")
+
+            recommendation = "Routine monitoring is sufficient."
+
+        elif prediction < 4:
+
+            st.success("🟢 Low Risk")
+
+            recommendation = "Maintain current security controls."
+
+        elif prediction < 6:
+
+            st.info("🟡 Moderate Risk")
+
+            recommendation = "Increase monitoring and investigate indicators."
+
+        elif prediction < 8:
+
+            st.warning("🟠 High Risk")
+
+            recommendation = "Immediate investigation recommended."
+
+        else:
+
+            st.error("🔴 Critical Risk")
+
+            recommendation = "Immediate incident response required."
+
+        st.markdown("### Recommendation")
+
+        st.write(recommendation)
+
+        st.markdown("---")
+
+        st.subheader("Prediction Summary")
+
+        summary = pd.DataFrame({
+
+            "Field": [
+                "Industry",
+                "Country",
+                "Attack Vector",
+                "Ransomware Group",
+                "Attack Date",
+                "Ransom Amount (USD)",
+                "Predicted Severity"
+            ],
+
+            "Value": [
+                industry,
+                country,
+                attack_vector,
+                ransomware_group,
+                attack_date,
+                f"${ransom_amount:,.2f}",
+                f"{prediction:.2f}/10"
+            ]
+
+        })
+
+        st.table(summary)
+
+    except Exception as e:
+
+        st.error("Prediction failed.")
+
+        st.exception(e)
+
+
+st.markdown("---")
+
+st.caption("🛡️ RansomSense | AI-Powered Ransomware Intelligence Platform")
