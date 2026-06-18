@@ -1,4 +1,4 @@
-# 🛡️ RamsomSense
+# RamsomSense
 
 An end-to-end machine learning project that analyzes ransomware attack data to predict:
 
